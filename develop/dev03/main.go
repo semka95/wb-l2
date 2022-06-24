@@ -1,5 +1,3 @@
-package main
-
 /*
 === Утилита sort ===
 
@@ -25,6 +23,14 @@ package main
 Программа должна проходить все тесты. Код должен проходить проверки go vet и golint.
 */
 
-func main() {
+package main
 
+import (
+	"os"
+
+	"sortfile/sortfile"
+)
+
+func main() {
+	os.Exit(sortfile.CLI(os.Args[1:]))
 }
