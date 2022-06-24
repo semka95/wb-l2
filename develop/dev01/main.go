@@ -1,5 +1,3 @@
-package main
-
 /*
 === Базовая задача ===
 
@@ -12,6 +10,13 @@ package main
 Программа должна проходить проверки go vet и golint.
 */
 
-func main() {
+package main
 
+import (
+	"ntp/ntp"
+	"os"
+)
+
+func main() {
+	os.Exit(ntp.CLI(os.Args[1:]))
 }
