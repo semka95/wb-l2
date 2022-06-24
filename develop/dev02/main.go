@@ -1,5 +1,3 @@
-package main
-
 /*
 === Задача на распаковку ===
 
@@ -17,7 +15,14 @@ package main
 
 Функция должна проходить все тесты. Код должен проходить проверки go vet и golint.
 */
+package main
+
+import (
+	"os"
+
+	"unpacker/unpacker"
+)
 
 func main() {
-
+	os.Exit(unpacker.CLI(os.Args[1:]))
 }
