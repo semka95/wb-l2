@@ -85,7 +85,7 @@ func prepareData(data []string) []string {
 }
 
 func main() {
-	data := []string{"пятка", "пятак", "тяпка", "листок", "столик", "столик", "СЛИТОК"}
+	data := []string{"пятак", "пятка", "тяпка", "листок", "слиток", "СтоЛИК", "ПЯТКА", "листок"}
 	data = prepareData(data)
 	res := anagram(data)
 
