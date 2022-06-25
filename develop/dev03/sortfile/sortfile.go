@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
+	"unicode"
 )
 
 func CLI(args []string) int {
@@ -81,27 +83,50 @@ func (app *appEnv) sort() {
 	sort.Strings(app.data)
 }
 
-type table struct {
-	data   [][]string
-	column int
+type stringTable struct {
+	data      [][]string
+	column    int
+	isNumeric bool
 }
 
-func (t table) Len() int {
+func (t stringTable) Len() int {
 	return len(t.data)
 }
 
-func (t table) Less(i, j int) bool {
+func (t stringTable) Less(i, j int) bool {
+	if t.isNumeric {
+		a := trimNonNumber(t.data[i][t.column])
+		b := trimNonNumber(t.data[j][t.column])
+
+		i1, err := strconv.Atoi(a)
+		if err != nil {
+			return (t.data[i][t.column] < t.data[j][t.column])
+		}
+		j1, err := strconv.Atoi(b)
+		if err != nil {
+			return (t.data[i][t.column] < t.data[j][t.column])
+		}
+
+		return i1 < j1
+	}
 	return (t.data[i][t.column] < t.data[j][t.column])
 }
 
-func (t table) Swap(i, j int) {
+func trimNonNumber(str string) string {
+	return strings.TrimRightFunc(str, func(r rune) bool {
+		return !unicode.IsNumber(r)
+	})
+}
+
+func (t stringTable) Swap(i, j int) {
 	t.data[i], t.data[j] = t.data[j], t.data[i]
 }
 
 func (app *appEnv) sortColumns() {
-	t := table{
-		data:   make([][]string, 0, len(app.data)),
-		column: app.column - 1,
+	t := stringTable{
+		data:      make([][]string, 0, len(app.data)),
+		column:    app.column - 1,
+		isNumeric: app.isNumeric,
 	}
 	for _, v := range app.data {
 		t.data = append(t.data, strings.Fields(v))
