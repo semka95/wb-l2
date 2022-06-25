@@ -1,4 +1,4 @@
-package sortfile
+package sortstrings
 
 import (
 	"bufio"
@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
-	"unicode"
 )
 
 func CLI(args []string) int {
@@ -38,7 +36,7 @@ func (app *appEnv) fromArgs(args []string) error {
 	fl.IntVar(&app.column, "k", 1, "sort via a column")
 	fl.BoolVar(&app.isNumeric, "n", false, "compare according to string numerical value")
 	fl.BoolVar(&app.isReverse, "r", false, "reverse the result of comparisons")
-	fl.BoolVar(&app.deleteDuplicate, "u", false, "delete duplicate")
+	fl.BoolVar(&app.deleteDuplicate, "u", false, "delete duplicate strings")
 
 	if err := fl.Parse(args); err != nil {
 		fl.Usage()
@@ -68,12 +66,12 @@ func (app *appEnv) run() error {
 
 	if app.column == 1 && !app.isNumeric {
 		app.sort()
-		app.writeToOutput()
+		writeToOutput(app.data)
 		return nil
 	}
 
 	app.sortColumns()
-	app.writeToOutput()
+	writeToOutput(app.data)
 
 	return nil
 }
@@ -86,47 +84,8 @@ func (app *appEnv) sort() {
 	}
 
 	if app.deleteDuplicate {
-		app.delDuplicate()
+		app.data = delDuplicate(app.data)
 	}
-}
-
-type stringTable struct {
-	data      [][]string
-	column    int
-	isNumeric bool
-}
-
-func (t stringTable) Len() int {
-	return len(t.data)
-}
-
-func (t stringTable) Less(i, j int) bool {
-	if t.isNumeric {
-		a := trimNonNumber(t.data[i][t.column])
-		b := trimNonNumber(t.data[j][t.column])
-
-		i1, err := strconv.Atoi(a)
-		if err != nil {
-			return (t.data[i][t.column] < t.data[j][t.column])
-		}
-		j1, err := strconv.Atoi(b)
-		if err != nil {
-			return (t.data[i][t.column] < t.data[j][t.column])
-		}
-
-		return i1 < j1
-	}
-	return (t.data[i][t.column] < t.data[j][t.column])
-}
-
-func trimNonNumber(str string) string {
-	return strings.TrimRightFunc(str, func(r rune) bool {
-		return !unicode.IsNumber(r)
-	})
-}
-
-func (t stringTable) Swap(i, j int) {
-	t.data[i], t.data[j] = t.data[j], t.data[i]
 }
 
 func (app *appEnv) sortColumns() {
@@ -135,6 +94,7 @@ func (app *appEnv) sortColumns() {
 		column:    app.column - 1,
 		isNumeric: app.isNumeric,
 	}
+
 	for _, v := range app.data {
 		t.data = append(t.data, strings.Fields(v))
 	}
@@ -150,26 +110,6 @@ func (app *appEnv) sortColumns() {
 	}
 
 	if app.deleteDuplicate {
-		app.delDuplicate()
-	}
-}
-
-func (app *appEnv) delDuplicate() {
-	m := make(map[string]struct{}, len(app.data))
-	res := make([]string, 0, len(app.data))
-	for _, v := range app.data {
-		if _, ok := m[v]; ok {
-			continue
-		}
-		res = append(res, v)
-		m[v] = struct{}{}
-	}
-
-	app.data = res
-}
-
-func (app *appEnv) writeToOutput() {
-	for _, v := range app.data {
-		fmt.Fprintf(os.Stdout, "%s\n", v)
+		app.data = delDuplicate(app.data)
 	}
 }

@@ -28,9 +28,9 @@ package main
 import (
 	"os"
 
-	"sortfile/sortfile"
+	"sortstrings/sortstrings"
 )
 
 func main() {
-	os.Exit(sortfile.CLI(os.Args[1:]))
+	os.Exit(sortstrings.CLI(os.Args[1:]))
 }
