@@ -2,11 +2,11 @@ package sortfile
 
 import (
 	"bufio"
-	"bytes"
 	"flag"
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 )
 
 func CLI(args []string) int {
@@ -28,6 +28,7 @@ type appEnv struct {
 	deleteDuplicate bool
 	column          int
 	file            *os.File
+	data            []string
 }
 
 func (app *appEnv) fromArgs(args []string) error {
@@ -42,7 +43,7 @@ func (app *appEnv) fromArgs(args []string) error {
 		return err
 	}
 
-	file, err := os.OpenFile(fl.Arg(0), os.O_RDWR, 0666)
+	file, err := os.Open(fl.Arg(0))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "can't open file %s: %v\n", fl.Arg(0), err)
 		return err
@@ -55,45 +56,66 @@ func (app *appEnv) fromArgs(args []string) error {
 func (app *appEnv) run() error {
 	defer app.file.Close()
 
-	return app.sort()
-}
-
-func (app *appEnv) sort() error {
 	scanner := bufio.NewScanner(app.file)
-	file := make([]string, 0)
-
 	for scanner.Scan() {
-		file = append(file, scanner.Text())
+		app.data = append(app.data, scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
 		return err
 	}
 
-	sort.Strings(file)
-	var b bytes.Buffer
-	err := app.file.Truncate(0)
-	if err != nil {
-		return err
-	}
-	_, err = app.file.Seek(0, 0)
-	if err != nil {
-		return err
+	if app.column == 1 {
+		app.sort()
 	}
 
-	for _, v := range file {
-		b.Write([]byte(v))
-		b.Write([]byte("\n"))
+	if app.column > 1 {
+		app.sortColumns()
 	}
 
-	_, err = app.file.Write(b.Bytes())
-	if err != nil {
-		return err
-	}
-
-	err = app.file.Sync()
-	if err != nil {
-		return err
-	}
+	app.writeToOutput()
 
 	return nil
+}
+
+func (app *appEnv) sort() {
+	sort.Strings(app.data)
+}
+
+type table struct {
+	data   [][]string
+	column int
+}
+
+func (t table) Len() int {
+	return len(t.data)
+}
+
+func (t table) Less(i, j int) bool {
+	return (t.data[i][t.column] < t.data[j][t.column])
+}
+
+func (t table) Swap(i, j int) {
+	t.data[i], t.data[j] = t.data[j], t.data[i]
+}
+
+func (app *appEnv) sortColumns() {
+	t := table{
+		data:   make([][]string, 0, len(app.data)),
+		column: app.column - 1,
+	}
+	for _, v := range app.data {
+		t.data = append(t.data, strings.Fields(v))
+	}
+
+	sort.Sort(t)
+
+	for i, v := range t.data {
+		app.data[i] = strings.Join(v, " ")
+	}
+}
+
+func (app *appEnv) writeToOutput() {
+	for _, v := range app.data {
+		fmt.Fprintf(os.Stdout, "%s\n", v)
+	}
 }
