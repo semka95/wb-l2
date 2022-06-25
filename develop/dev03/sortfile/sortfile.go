@@ -66,21 +66,28 @@ func (app *appEnv) run() error {
 		return err
 	}
 
-	if app.column == 1 {
+	if app.column == 1 && !app.isNumeric {
 		app.sort()
+		app.writeToOutput()
+		return nil
 	}
 
-	if app.column > 1 {
-		app.sortColumns()
-	}
-
+	app.sortColumns()
 	app.writeToOutput()
 
 	return nil
 }
 
 func (app *appEnv) sort() {
-	sort.Strings(app.data)
+	if app.isReverse {
+		sort.Sort(sort.Reverse(sort.StringSlice(app.data)))
+	} else {
+		sort.Strings(app.data)
+	}
+
+	if app.deleteDuplicate {
+		app.delDuplicate()
+	}
 }
 
 type stringTable struct {
@@ -141,6 +148,24 @@ func (app *appEnv) sortColumns() {
 	for i, v := range t.data {
 		app.data[i] = strings.Join(v, " ")
 	}
+
+	if app.deleteDuplicate {
+		app.delDuplicate()
+	}
+}
+
+func (app *appEnv) delDuplicate() {
+	m := make(map[string]struct{}, len(app.data))
+	res := make([]string, 0, len(app.data))
+	for _, v := range app.data {
+		if _, ok := m[v]; ok {
+			continue
+		}
+		res = append(res, v)
+		m[v] = struct{}{}
+	}
+
+	app.data = res
 }
 
 func (app *appEnv) writeToOutput() {
