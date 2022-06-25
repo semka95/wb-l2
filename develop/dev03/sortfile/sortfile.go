@@ -132,7 +132,11 @@ func (app *appEnv) sortColumns() {
 		t.data = append(t.data, strings.Fields(v))
 	}
 
-	sort.Sort(t)
+	if app.isReverse {
+		sort.Sort(sort.Reverse(t))
+	} else {
+		sort.Sort(t)
+	}
 
 	for i, v := range t.data {
 		app.data[i] = strings.Join(v, " ")
