@@ -8,14 +8,14 @@ import (
 )
 
 func delDuplicate(data []string) []string {
-	m := make(map[string]struct{}, len(data))
+	exists := make(map[string]struct{}, len(data))
 	res := make([]string, 0, len(data))
 	for _, v := range data {
-		if _, ok := m[v]; ok {
+		if _, ok := exists[v]; ok {
 			continue
 		}
 		res = append(res, v)
-		m[v] = struct{}{}
+		exists[v] = struct{}{}
 	}
 
 	return res
