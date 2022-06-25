@@ -21,6 +21,7 @@
 -h — сортировать по числовому значению с учётом суффиксов
 
 Программа должна проходить все тесты. Код должен проходить проверки go vet и golint.
+https://andreyex.ru/linux/komandy-linux-i-komandy-shell/10-poleznyh-primerov-komandy-sort-v-linux/
 */
 
 package main
