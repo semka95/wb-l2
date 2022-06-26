@@ -100,6 +100,13 @@ func (a *API) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	eid := r.FormValue("id")
+	event_id, err := strconv.Atoi(eid)
+	if err != nil {
+		SendErrorJSON(w, r, http.StatusBadRequest, err, "can't parse id")
+		return
+	}
+
 	date := r.FormValue("date")
 	t, err := time.Parse(time.RFC3339, date)
 	if err != nil {
@@ -114,6 +121,7 @@ func (a *API) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	e := event.Event{
+		ID:    uint64(event_id),
 		Title: title,
 		Date:  t,
 	}
