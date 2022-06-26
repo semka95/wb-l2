@@ -3,6 +3,7 @@ module calendar
 go 1.18
 
 require (
+	github.com/sethvargo/go-envconfig v0.7.0
 	go.etcd.io/bbolt v1.3.6
 	go.uber.org/zap v1.21.0
 )
