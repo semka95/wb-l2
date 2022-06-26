@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"calendar/http/middleware"
 )
 
 type API struct {
@@ -25,12 +26,12 @@ func NewAPI(repository event.EventRepository, logger *zap.Logger) API {
 func (a *API) NewRouter() *http.ServeMux {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/create_event", a.Create)
-	mux.HandleFunc("/update_event", a.Update)
-	mux.HandleFunc("/delete_event", a.Delete)
-	mux.HandleFunc("/events_for_day", a.Get)
-	mux.HandleFunc("/events_for_week", a.Get)
-	mux.HandleFunc("/events_for_month", a.Get)
+	mux.HandleFunc("/create_event", middleware.Logger(a.Create))
+	mux.HandleFunc("/update_event", middleware.Logger(a.Update))
+	mux.HandleFunc("/delete_event", middleware.Logger(a.Delete))
+	mux.HandleFunc("/events_for_day", middleware.Logger(a.Get))
+	mux.HandleFunc("/events_for_week", middleware.Logger(a.Get))
+	mux.HandleFunc("/events_for_month", middleware.Logger(a.Get))
 
 	return mux
 }
