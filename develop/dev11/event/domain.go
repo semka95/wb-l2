@@ -18,7 +18,7 @@ type Event struct {
 }
 
 type EventRepository interface {
-	Create(user_id uint64, e Event) error
+	Create(user_id uint64, e Event) (Event, error)
 	Update(user_id uint64, e Event) error
 	Delete(user_id uint64, event_id uint64) error
 	GetForDay(user_id uint64, day time.Time) ([]Event, error)

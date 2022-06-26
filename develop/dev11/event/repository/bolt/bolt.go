@@ -30,8 +30,9 @@ func NewBoltDB(path string) (*bbolt.DB, error) {
 	return db, nil
 }
 
-func (b *boltEventRepository) Create(user_id uint64, e event.Event) error {
-	return b.db.Update(func(tx *bbolt.Tx) error {
+func (b *boltEventRepository) Create(user_id uint64, e event.Event) (event.Event, error) {
+	var result event.Event
+	err := b.db.Update(func(tx *bbolt.Tx) error {
 		user, err := tx.CreateBucketIfNotExists(itob(user_id))
 		if err != nil {
 			return err
@@ -51,9 +52,16 @@ func (b *boltEventRepository) Create(user_id uint64, e event.Event) error {
 		} else if err := eBkt.Put(itob(e.ID), buf); err != nil {
 			return err
 		}
+		result = e
 
 		return nil
 	})
+
+	if err != nil {
+		return event.Event{}, err
+	}
+
+	return result, nil
 }
 
 func (b *boltEventRepository) Update(user_id uint64, e event.Event) error {
