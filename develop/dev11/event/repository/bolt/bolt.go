@@ -60,22 +60,22 @@ func (b *boltEventRepository) Update(user_id uint64, e event.Event) error {
 	return b.db.Update(func(tx *bbolt.Tx) error {
 		user := tx.Bucket(itob(user_id))
 		if user == nil {
-			return fmt.Errorf("user %d does not exist", user_id)
+			return fmt.Errorf("%w: user %d does not exist", event.ErrNotFound, user_id)
 		}
 
 		eBkt := user.Bucket([]byte("events"))
 		if eBkt == nil {
-			return fmt.Errorf("user %d has no events", user_id)
+			return fmt.Errorf("%w: user %d has no events", event.ErrNotFound, user_id)
 		}
 
 		v := eBkt.Get(itob(e.ID))
 		if v == nil {
-			return fmt.Errorf("user %d has no %d event", user_id, e.ID)
+			return fmt.Errorf("%w: user %d has no %d event", event.ErrNotFound, user_id, e.ID)
 		}
 
 		buf, err := json.Marshal(e)
 		if err != nil {
-			return err
+			return fmt.Errorf("%w: %s", event.ErrInternalServerError, err.Error())
 		}
 
 		return eBkt.Put(itob(e.ID), buf)
@@ -86,17 +86,17 @@ func (b *boltEventRepository) Delete(user_id uint64, event_id uint64) error {
 	return b.db.Update(func(tx *bbolt.Tx) error {
 		user := tx.Bucket(itob(user_id))
 		if user == nil {
-			return fmt.Errorf("user %d does not exist", user_id)
+			return fmt.Errorf("%w: user %d does not exist", event.ErrNotFound, user_id)
 		}
 
 		eBkt := user.Bucket([]byte("events"))
 		if eBkt == nil {
-			return fmt.Errorf("user %d has no events", user_id)
+			return fmt.Errorf("%w: user %d has no events", event.ErrNotFound, user_id)
 		}
 
 		v := eBkt.Get(itob(event_id))
 		if v == nil {
-			return fmt.Errorf("user %d has no %d event", user_id, event_id)
+			return fmt.Errorf("%w: user %d has no %d event", event.ErrNotFound, user_id, event_id)
 		}
 
 		return eBkt.Delete(itob(event_id))
@@ -108,12 +108,12 @@ func (b *boltEventRepository) GetForDay(user_id uint64, day time.Time) ([]event.
 	err := b.db.View(func(tx *bbolt.Tx) error {
 		user := tx.Bucket(itob(user_id))
 		if user == nil {
-			return fmt.Errorf("user %d does not exist", user_id)
+			return fmt.Errorf("%w: user %d does not exist", event.ErrNotFound, user_id)
 		}
 
 		eBkt := user.Bucket([]byte("events"))
 		if eBkt == nil {
-			return fmt.Errorf("user %d has no events", user_id)
+			return fmt.Errorf("%w: user %d has no events", event.ErrNotFound, user_id)
 		}
 		c := eBkt.Cursor()
 
@@ -123,7 +123,8 @@ func (b *boltEventRepository) GetForDay(user_id uint64, day time.Time) ([]event.
 			if err != nil {
 				return err
 			}
-			if ev.Date.Equal(day) {
+
+			if ev.Date.Year() == day.Year() && ev.Date.Month() == day.Month() && ev.Date.Day() == day.Day() {
 				events = append(events, ev)
 			}
 		}
@@ -141,12 +142,12 @@ func (b *boltEventRepository) GetForWeek(user_id uint64, week time.Time) ([]even
 	err := b.db.View(func(tx *bbolt.Tx) error {
 		user := tx.Bucket(itob(user_id))
 		if user == nil {
-			return fmt.Errorf("user %d does not exist", user_id)
+			return fmt.Errorf("%w: user %d does not exist", event.ErrNotFound, user_id)
 		}
 
 		eBkt := user.Bucket([]byte("events"))
 		if eBkt == nil {
-			return fmt.Errorf("user %d has no events", user_id)
+			return fmt.Errorf("%w: user %d has no events", event.ErrNotFound, user_id)
 		}
 		c := eBkt.Cursor()
 
@@ -176,12 +177,12 @@ func (b *boltEventRepository) GetForMonth(user_id uint64, month time.Time) ([]ev
 	err := b.db.View(func(tx *bbolt.Tx) error {
 		user := tx.Bucket(itob(user_id))
 		if user == nil {
-			return fmt.Errorf("user %d does not exist", user_id)
+			return fmt.Errorf("%w: user %d does not exist", event.ErrNotFound, user_id)
 		}
 
 		eBkt := user.Bucket([]byte("events"))
 		if eBkt == nil {
-			return fmt.Errorf("user %d has no events", user_id)
+			return fmt.Errorf("%w: user %d has no events", event.ErrNotFound, user_id)
 		}
 		c := eBkt.Cursor()
 

@@ -1,6 +1,10 @@
 package event
 
-import "time"
+import (
+	"errors"
+	"net/http"
+	"time"
+)
 
 type User struct {
 	ID     uint64  `json:"id,omitempty"`
@@ -20,4 +24,18 @@ type EventRepository interface {
 	GetForDay(user_id uint64, day time.Time) ([]Event, error)
 	GetForWeek(user_id uint64, week time.Time) ([]Event, error)
 	GetForMonth(user_id uint64, month time.Time) ([]Event, error)
+}
+
+var (
+	ErrNotFound            = errors.New("your requested item is not found")
+	ErrInternalServerError = errors.New("internal server error")
+)
+
+// GetStatusCode gets http code from error
+func GetStatusCode(err error) int {
+	if errors.Is(err, ErrNotFound) {
+		return http.StatusNotFound
+	}
+
+	return http.StatusInternalServerError
 }

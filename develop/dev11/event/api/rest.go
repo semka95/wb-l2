@@ -75,13 +75,13 @@ func (a *API) Create(w http.ResponseWriter, r *http.Request) {
 		Date:  t,
 	}
 
-	err = a.eventStore.Create(uint64(user_id), e)
+	result, err := a.eventStore.Create(uint64(user_id), e)
 	if err != nil {
-		render.ErrorJSON(w, r, http.StatusInternalServerError, err, "can't create event")
+		render.ErrorJSON(w, r, event.GetStatusCode(err), err, "can't create event")
 		return
 	}
 
-	render.NoContent(w, r)
+	render.JSON(w, r, http.StatusCreated, result)
 }
 
 func (a *API) Update(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +131,7 @@ func (a *API) Update(w http.ResponseWriter, r *http.Request) {
 
 	err = a.eventStore.Update(uint64(user_id), e)
 	if err != nil {
-		render.ErrorJSON(w, r, http.StatusInternalServerError, err, "can't update event")
+		render.ErrorJSON(w, r, event.GetStatusCode(err), err, "can't update event")
 		return
 	}
 
@@ -166,7 +166,7 @@ func (a *API) Delete(w http.ResponseWriter, r *http.Request) {
 
 	err = a.eventStore.Delete(uint64(user_id), uint64(event_id))
 	if err != nil {
-		render.ErrorJSON(w, r, http.StatusInternalServerError, err, "can't delete event")
+		render.ErrorJSON(w, r, event.GetStatusCode(err), err, "can't delete event")
 		return
 	}
 
@@ -204,9 +204,13 @@ func (a *API) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		render.ErrorJSON(w, r, http.StatusInternalServerError, err, "can't get events")
+		render.ErrorJSON(w, r, event.GetStatusCode(err), err, "can't get events")
 		return
 	}
 
+	if len(events) == 0 {
+		render.NoContent(w, r)
+		return
+	}
 	render.JSON(w, r, http.StatusOK, events)
 }
