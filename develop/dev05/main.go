@@ -1,5 +1,3 @@
-package main
-
 /*
 === Утилита grep ===
 
@@ -17,7 +15,14 @@ package main
 
 Программа должна проходить все тесты. Код должен проходить проверки go vet и golint.
 */
+package main
+
+import (
+	"os"
+
+	"go-grep/grep"
+)
 
 func main() {
-
+	os.Exit(grep.CLI(os.Args[1:]))
 }
