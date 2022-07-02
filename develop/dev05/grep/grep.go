@@ -141,13 +141,16 @@ func (app *appEnv) printResult(matched []int) {
 	for _, v := range matched {
 		m[v] = struct{}{}
 	}
+	var lastPrinted int
 
 	for _, v := range matched {
+		if v-lastPrinted > 2 {
+			fmt.Println("--")
+		}
 		if app.before > 0 || app.after > 0 {
 			if _, ok := printed[v]; ok {
 				continue
 			}
-			ifLine := true
 
 			start := v - app.before
 			finish := v + app.after
@@ -162,7 +165,6 @@ func (app *appEnv) printResult(matched []int) {
 					continue
 				}
 				if _, ok := m[start]; ok && start != v {
-					ifLine = false
 					break
 				}
 				if app.printLineNum {
@@ -172,14 +174,13 @@ func (app *appEnv) printResult(matched []int) {
 						fmt.Printf("%d-%s\n", start+1, app.input[start])
 					}
 					printed[start] = struct{}{}
+					lastPrinted = start
 					continue
 				}
 				fmt.Println(app.input[start])
 				printed[start] = struct{}{}
+				lastPrinted = start
 
-			}
-			if ifLine {
-				fmt.Println("--")
 			}
 			continue
 		}
