@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"strings"
 )
 
 func CLI(args []string) int {
@@ -39,30 +40,14 @@ type appEnv struct {
 
 func (app *appEnv) fromArgs(args []string) error {
 	fl := flag.NewFlagSet("go-grep", flag.ContinueOnError)
-	fl.IntVar(
-		&app.after, "A", 0, "Print NUM lines of trailing context after matching lines.",
-	)
-	fl.IntVar(
-		&app.before, "B", 0, "Print NUM lines of leading context before matching lines.",
-	)
-	fl.IntVar(
-		&app.context, "C", 0, "Print NUM lines of output context.",
-	)
-	fl.IntVar(
-		&app.count, "c", -1, "Suppress normal output; instead print a count of matching lines for each input file.  With the -v, count non-matching lines.",
-	)
-	fl.BoolVar(
-		&app.ignoreCase, "i", false, " Ignore case distinctions in patterns and input data, so that characters that differ only in case match each other.",
-	)
-	fl.BoolVar(
-		&app.invert, "v", false, " Invert the sense of matching, to select non-matching lines.",
-	)
-	fl.BoolVar(
-		&app.isFixed, "F", false, " Interpret PATTERNS as fixed strings, not regular expressions.",
-	)
-	fl.BoolVar(
-		&app.printLineNum, "n", false, "Prefix each line of output with the 1-based line number within its input file.",
-	)
+	fl.IntVar(&app.after, "A", 0, "Print NUM lines of trailing context after matching lines.")
+	fl.IntVar(&app.before, "B", 0, "Print NUM lines of leading context before matching lines.")
+	fl.IntVar(&app.context, "C", 0, "Print NUM lines of output context.")
+	fl.IntVar(&app.count, "c", -1, "Suppress normal output; instead print a count of matching lines for each input file.  With the -v, count non-matching lines.")
+	fl.BoolVar(&app.ignoreCase, "i", false, " Ignore case distinctions in patterns and input data, so that characters that differ only in case match each other.")
+	fl.BoolVar(&app.invert, "v", false, " Invert the sense of matching, to select non-matching lines.")
+	fl.BoolVar(&app.isFixed, "F", false, " Interpret PATTERNS as fixed strings, not regular expressions.")
+	fl.BoolVar(&app.printLineNum, "n", false, "Prefix each line of output with the 1-based line number within its input file.")
 
 	if err := fl.Parse(args); err != nil {
 		return err
@@ -75,6 +60,9 @@ func (app *appEnv) fromArgs(args []string) error {
 	}
 
 	app.pattern = fl.Arg(0)
+	if !app.isFixed && app.ignoreCase {
+		app.pattern = "(?i)" + fl.Arg(0)
+	}
 
 	file, err := os.Open(fl.Arg(1))
 	if err != nil {
@@ -101,11 +89,50 @@ func (app *appEnv) run() error {
 		return err
 	}
 
-	for _, v := range app.input {
-		if r.MatchString(v) {
-			fmt.Println(v)
+	app.printResult(app.findMatched(r))
+
+	return nil
+}
+
+func (app *appEnv) findMatched(r *regexp.Regexp) []int {
+	matched := make([]int, 0, len(app.input)/3)
+
+	for i, v := range app.input {
+		if app.count == 0 {
+			break
+		}
+
+		if app.isFixed {
+			if app.ignoreCase {
+				s := strings.ToLower(v)
+				p := strings.ToLower(app.pattern)
+				if s == p && !app.invert || s != p && app.invert {
+					matched = append(matched, i)
+					app.count--
+				}
+				continue
+			}
+			if v == app.pattern && !app.invert || v != app.pattern && app.invert {
+				matched = append(matched, i)
+				app.count--
+			}
+			continue
+		}
+		if r.MatchString(v) && !app.invert || !r.MatchString(v) && app.invert {
+			matched = append(matched, i)
+			app.count--
 		}
 	}
 
-	return nil
+	return matched
+}
+
+func (app *appEnv) printResult(matched []int) {
+	for _, v := range matched {
+		if app.printLineNum {
+			fmt.Printf("%d:%s\n", v+1, app.input[v])
+			continue
+		}
+		fmt.Println(v)
+	}
 }
