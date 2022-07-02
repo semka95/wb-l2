@@ -53,6 +53,14 @@ func (app *appEnv) fromArgs(args []string) error {
 		return err
 	}
 
+	if app.after == 0 {
+		app.after = app.context
+	}
+
+	if app.before == 0 {
+		app.before = app.context
+	}
+
 	stat, _ := os.Stdin.Stat()
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		app.reader = os.Stdin
@@ -128,7 +136,54 @@ func (app *appEnv) findMatched(r *regexp.Regexp) []int {
 }
 
 func (app *appEnv) printResult(matched []int) {
+	printed := make(map[int]struct{})
+	m := make(map[int]struct{})
 	for _, v := range matched {
+		m[v] = struct{}{}
+	}
+
+	for _, v := range matched {
+		if app.before > 0 || app.after > 0 {
+			if _, ok := printed[v]; ok {
+				continue
+			}
+			ifLine := true
+
+			start := v - app.before
+			finish := v + app.after
+			if v-app.before < 0 {
+				start = 0
+			}
+			if v+app.after > len(app.input)-1 {
+				finish = len(app.input) - 1
+			}
+			for ; start <= finish; start++ {
+				if _, ok := printed[start]; ok {
+					continue
+				}
+				if _, ok := m[start]; ok && start != v {
+					ifLine = false
+					break
+				}
+				if app.printLineNum {
+					if _, ok := m[start]; ok {
+						fmt.Printf("%d:%s\n", start+1, app.input[start])
+					} else {
+						fmt.Printf("%d-%s\n", start+1, app.input[start])
+					}
+					printed[start] = struct{}{}
+					continue
+				}
+				fmt.Println(app.input[start])
+				printed[start] = struct{}{}
+
+			}
+			if ifLine {
+				fmt.Println("--")
+			}
+			continue
+		}
+
 		if app.printLineNum {
 			fmt.Printf("%d:%s\n", v+1, app.input[v])
 			continue
