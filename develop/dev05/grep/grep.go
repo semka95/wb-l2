@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 )
 
 func CLI(args []string) int {
@@ -33,6 +34,7 @@ type appEnv struct {
 	printLineNum bool
 	reader       io.Reader
 	input        []string
+	pattern      string
 }
 
 func (app *appEnv) fromArgs(args []string) error {
@@ -72,7 +74,9 @@ func (app *appEnv) fromArgs(args []string) error {
 		return nil
 	}
 
-	file, err := os.Open(fl.Arg(0))
+	app.pattern = fl.Arg(0)
+
+	file, err := os.Open(fl.Arg(1))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "can't open file %s: %v\n", fl.Arg(0), err)
 		return err
@@ -90,6 +94,17 @@ func (app *appEnv) run() error {
 
 	if err := scanner.Err(); err != nil {
 		return err
+	}
+
+	r, err := regexp.Compile(app.pattern)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range app.input {
+		if r.MatchString(v) {
+			fmt.Println(v)
+		}
 	}
 
 	return nil
