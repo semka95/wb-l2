@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"regexp"
-	"strings"
 )
 
 func CLI(args []string) int {
@@ -50,26 +49,29 @@ func (app *appEnv) fromArgs(args []string) error {
 	fl.BoolVar(&app.printLineNum, "n", false, "Prefix each line of output with the 1-based line number within its input file.")
 
 	if err := fl.Parse(args); err != nil {
+		fl.Usage()
 		return err
 	}
 
 	if app.after == 0 {
 		app.after = app.context
 	}
-
 	if app.before == 0 {
 		app.before = app.context
+	}
+
+	app.pattern = fl.Arg(0)
+	if app.isFixed {
+		app.pattern = fmt.Sprintf("^%s$", app.pattern)
+	}
+	if app.ignoreCase {
+		app.pattern = "(?i)" + app.pattern
 	}
 
 	stat, _ := os.Stdin.Stat()
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		app.reader = os.Stdin
 		return nil
-	}
-
-	app.pattern = fl.Arg(0)
-	if !app.isFixed && app.ignoreCase {
-		app.pattern = "(?i)" + fl.Arg(0)
 	}
 
 	file, err := os.Open(fl.Arg(1))
@@ -109,23 +111,6 @@ func (app *appEnv) findMatched(r *regexp.Regexp) []int {
 		if app.count == 0 {
 			break
 		}
-
-		if app.isFixed {
-			if app.ignoreCase {
-				s := strings.ToLower(v)
-				p := strings.ToLower(app.pattern)
-				if s == p && !app.invert || s != p && app.invert {
-					matched = append(matched, i)
-					app.count--
-				}
-				continue
-			}
-			if v == app.pattern && !app.invert || v != app.pattern && app.invert {
-				matched = append(matched, i)
-				app.count--
-			}
-			continue
-		}
 		if r.MatchString(v) && !app.invert || !r.MatchString(v) && app.invert {
 			matched = append(matched, i)
 			app.count--
@@ -137,38 +122,39 @@ func (app *appEnv) findMatched(r *regexp.Regexp) []int {
 
 func (app *appEnv) printResult(matched []int) {
 	printed := make(map[int]struct{})
-	m := make(map[int]struct{})
+	matchedM := make(map[int]struct{})
 	for _, v := range matched {
-		m[v] = struct{}{}
+		matchedM[v] = struct{}{}
 	}
-	var lastPrinted int
 
+	var lastPrinted int
 	for _, v := range matched {
-		if v-lastPrinted > 2 {
-			fmt.Println("--")
-		}
 		if app.before > 0 || app.after > 0 {
+			if v-lastPrinted > 2 {
+				fmt.Println("--")
+			}
 			if _, ok := printed[v]; ok {
 				continue
 			}
 
 			start := v - app.before
-			finish := v + app.after
 			if v-app.before < 0 {
 				start = 0
 			}
+			finish := v + app.after
 			if v+app.after > len(app.input)-1 {
 				finish = len(app.input) - 1
 			}
+
 			for ; start <= finish; start++ {
 				if _, ok := printed[start]; ok {
 					continue
 				}
-				if _, ok := m[start]; ok && start != v {
+				if _, ok := matchedM[start]; ok && start != v {
 					break
 				}
 				if app.printLineNum {
-					if _, ok := m[start]; ok {
+					if _, ok := matchedM[start]; ok {
 						fmt.Printf("%d:%s\n", start+1, app.input[start])
 					} else {
 						fmt.Printf("%d-%s\n", start+1, app.input[start])
