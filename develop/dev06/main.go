@@ -1,5 +1,3 @@
-package main
-
 /*
 === Утилита cut ===
 
@@ -12,7 +10,13 @@ package main
 
 Программа должна проходить все тесты. Код должен проходить проверки go vet и golint.
 */
+package main
+
+import (
+	"go-cut/cut"
+	"os"
+)
 
 func main() {
-
+	os.Exit(cut.CLI(os.Args[1:]))
 }
