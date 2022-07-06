@@ -1,9 +1,13 @@
 package wget
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"mime"
 	"net/http"
+	"os"
 	"path"
 	"strings"
 
@@ -14,10 +18,11 @@ import (
 type Sitemap struct {
 	rootLink     string
 	visitedLinks map[string]struct{}
+	directory    string
 }
 
 // NewSitemap creates instance of Sitemap
-func NewSitemap(rootLink string) Sitemap {
+func NewSitemap(rootLink string, directory string) Sitemap {
 	v := map[string]struct{}{
 		rootLink: {},
 	}
@@ -25,7 +30,9 @@ func NewSitemap(rootLink string) Sitemap {
 	s := Sitemap{
 		rootLink:     rootLink,
 		visitedLinks: v,
+		directory:    directory,
 	}
+
 	return s
 }
 
@@ -44,9 +51,39 @@ func (s *Sitemap) BuildSitemap(queue []string, depth int) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(path.Base(resp.Request.URL.Path))
+		defer resp.Body.Close()
 
-		l, err := s.parseLinks(resp.Body)
+		mediatype, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+		if err != nil {
+			fmt.Printf("can't parse link type: %s", err.Error())
+		}
+		ext, err := mime.ExtensionsByType(mediatype)
+		if err != nil || len(ext) == 0 {
+			fmt.Printf("can't parse link type: %s", err.Error())
+		}
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		r := bytes.NewReader(body)
+		fileName := path.Join(s.directory, path.Base(resp.Request.URL.Path)+ext[0])
+		file, err := os.Create(fileName)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		size, err := io.Copy(file, r)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("\nDownloaded a file %s with size %d bytes\n", fileName, size)
+
+		r.Seek(0, 0)
+		l, err := s.parseLinks(r)
 		if err != nil {
 			return err
 		}
@@ -72,7 +109,7 @@ func (s *Sitemap) parseLinks(r io.Reader) ([]string, error) {
 	links := make([]string, 0)
 
 	for _, v := range res {
-		href := v.Href
+		href := v.Href.Host + v.Href.Path
 		visited := true
 
 		switch {
