@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
+	"path"
 
 	"github.com/schollz/progressbar/v3"
 )
@@ -52,22 +52,34 @@ func (app *appEnv) fromArgs(args []string) error {
 		return err
 	}
 	app.link = u
+	app.depth++
+
+	if app.outputFile == "" {
+		app.outputFile = path.Base(app.link.Path)
+	}
 
 	return nil
 }
 
 func (app *appEnv) run() error {
-	// queue := []string{app.link}
-	// sm := NewSitemap(app.link)
-	// err := sm.BuildSitemap(queue, app.depth)
-	// if err != nil {
-	// 	return err
-	// }
+	if app.recursive {
+		queue := []string{app.link.String()}
+		if err := os.Mkdir(app.link.Host, os.ModePerm); err != nil {
+			return err
+		}
+		sm := NewSitemap(app.link.String(), app.link.Host)
+		err := sm.BuildSitemap(queue, app.depth)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 
-	path := app.link.Path
-	segments := strings.Split(path, "/")
-	fileName := segments[len(segments)-1]
-	file, err := os.Create(fileName)
+	return downloadFile(app.link.String(), app.outputFile)
+}
+
+func downloadFile(url string, filePath string) error {
+	file, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
@@ -80,11 +92,12 @@ func (app *appEnv) run() error {
 		},
 	}
 
-	resp, err := client.Get(app.link.String())
+	resp, err := client.Get(url)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+
 	bar := progressbar.DefaultBytes(
 		resp.ContentLength,
 		"downloading",
@@ -95,7 +108,7 @@ func (app *appEnv) run() error {
 		return err
 	}
 
-	fmt.Printf("\nDownloaded a file %s with size %d\n", fileName, size)
+	fmt.Printf("\nDownloaded a file %s with size %d bytes\n", filePath, size)
 
 	return nil
 }
