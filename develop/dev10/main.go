@@ -1,5 +1,3 @@
-package main
-
 /*
 === Утилита telnet ===
 
@@ -14,7 +12,14 @@ go-telnet --timeout=10s host port go-telnet mysite.ru 8080 go-telnet --timeout=3
 При нажатии Ctrl+D программа должна закрывать сокет и завершаться. Если сокет закрывается со стороны сервера, программа должна также завершаться.
 При подключении к несуществующему сервер, программа должна завершаться через timeout.
 */
+package main
+
+import (
+	"os"
+
+	"go-telnet/telnet"
+)
 
 func main() {
-
+	os.Exit(telnet.CLI(os.Args[1:]))
 }
