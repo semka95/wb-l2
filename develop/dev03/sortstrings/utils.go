@@ -27,6 +27,7 @@ func writeToOutput(data []string) {
 	}
 }
 
+// trimNonNumber deletes non number runes from the end of the string
 func trimNonNumber(str string) string {
 	return strings.TrimRightFunc(str, func(r rune) bool {
 		return !unicode.IsNumber(r)

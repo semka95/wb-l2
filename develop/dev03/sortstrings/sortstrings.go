@@ -10,6 +10,7 @@ import (
 	"strings"
 )
 
+// CLI runs the go-sort command line app and returns its exit status.
 func CLI(args []string) int {
 	var app appEnv
 	err := app.fromArgs(args)

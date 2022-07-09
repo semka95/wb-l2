@@ -4,6 +4,7 @@ import (
 	"strconv"
 )
 
+// stringTable represents slice of slices of strings
 type stringTable struct {
 	data      [][]string
 	column    int
