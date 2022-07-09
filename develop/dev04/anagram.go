@@ -21,10 +21,10 @@ package main
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 )
 
+// unorderedEqual checks if two strings made up of same runes
 func unorderedEqual(str1, str2 string) bool {
 	if len(str1) != len(str2) {
 		return false
@@ -48,6 +48,7 @@ func anagram(data []string) map[string][]string {
 	exists := make(map[string]struct{})
 
 	for i, v := range data {
+		exists[v] = struct{}{}
 		for j := i + 1; j < len(data); j++ {
 			if _, ok := exists[data[j]]; ok {
 				continue
@@ -56,7 +57,6 @@ func anagram(data []string) map[string][]string {
 			if unorderedEqual(v, data[j]) {
 				res[v] = append(res[v], data[j])
 				exists[data[j]] = struct{}{}
-				exists[v] = struct{}{}
 			}
 		}
 	}
@@ -64,22 +64,14 @@ func anagram(data []string) map[string][]string {
 	return res
 }
 
+// prepareData transforms each string to lower case
 func prepareData(data []string) []string {
 	res := make([]string, 0, len(data))
-	exists := make(map[string]struct{})
 
 	for _, v := range data {
 		str := strings.ToLower(v)
-
-		if _, ok := exists[str]; ok {
-			continue
-		}
-
 		res = append(res, str)
-		exists[str] = struct{}{}
 	}
-
-	sort.Strings(res)
 
 	return res
 }
