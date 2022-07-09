@@ -27,8 +27,7 @@ type appEnv struct {
 	isReverse       bool
 	deleteDuplicate bool
 	column          int
-	file            *os.File
-	data            []string
+	reader          io.ReadCloser
 }
 
 func (app *appEnv) fromArgs(args []string) error {
@@ -43,20 +42,26 @@ func (app *appEnv) fromArgs(args []string) error {
 		return err
 	}
 
+	stat, _ := os.Stdin.Stat()
+	if (stat.Mode() & os.ModeCharDevice) == 0 {
+		app.reader = os.Stdin
+		return nil
+	}
+
 	file, err := os.Open(fl.Arg(0))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "can't open file %s: %v\n", fl.Arg(0), err)
 		return err
 	}
-	app.file = file
+	app.reader = file
 
 	return nil
 }
 
 func (app *appEnv) run() error {
-	defer app.file.Close()
+	defer app.reader.Close()
 
-	scanner := bufio.NewScanner(app.file)
+	scanner := bufio.NewScanner(app.reader)
 	for scanner.Scan() {
 		app.data = append(app.data, scanner.Text())
 	}
