@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"strings"
@@ -60,47 +61,50 @@ func (app *appEnv) fromArgs(args []string) error {
 
 func (app *appEnv) run() error {
 	defer app.reader.Close()
+	data := make([]string, 0)
 
 	scanner := bufio.NewScanner(app.reader)
 	for scanner.Scan() {
-		app.data = append(app.data, scanner.Text())
+		data = append(data, scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
 		return err
 	}
 
 	if app.column == 1 && !app.isNumeric {
-		app.sort()
-		writeToOutput(app.data)
+		data = app.sort(data)
+		writeToOutput(data)
 		return nil
 	}
 
-	app.sortColumns()
-	writeToOutput(app.data)
+	data = app.sortColumns(data)
+	writeToOutput(data)
 
 	return nil
 }
 
-func (app *appEnv) sort() {
+func (app *appEnv) sort(data []string) []string {
 	if app.isReverse {
-		sort.Sort(sort.Reverse(sort.StringSlice(app.data)))
+		sort.Sort(sort.Reverse(sort.StringSlice(data)))
 	} else {
-		sort.Strings(app.data)
+		sort.Strings(data)
 	}
 
 	if app.deleteDuplicate {
-		app.data = delDuplicate(app.data)
+		data = delDuplicate(data)
 	}
+
+	return data
 }
 
-func (app *appEnv) sortColumns() {
+func (app *appEnv) sortColumns(data []string) []string {
 	t := stringTable{
-		data:      make([][]string, 0, len(app.data)),
+		data:      make([][]string, 0, len(data)),
 		column:    app.column - 1,
 		isNumeric: app.isNumeric,
 	}
 
-	for _, v := range app.data {
+	for _, v := range data {
 		t.data = append(t.data, strings.Fields(v))
 	}
 
@@ -111,10 +115,12 @@ func (app *appEnv) sortColumns() {
 	}
 
 	for i, v := range t.data {
-		app.data[i] = strings.Join(v, " ")
+		data[i] = strings.Join(v, " ")
 	}
 
 	if app.deleteDuplicate {
-		app.data = delDuplicate(app.data)
+		data = delDuplicate(data)
 	}
+
+	return data
 }
