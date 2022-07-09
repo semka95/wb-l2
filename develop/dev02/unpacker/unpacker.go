@@ -2,6 +2,7 @@ package unpacker
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -85,6 +86,11 @@ func unpack(input string) (string, error) {
 			}
 
 			res, err := strconv.Atoi(num.String())
+			if errors.Is(err, strconv.ErrRange) {
+				// if number out of range, just print it
+				b.WriteString(num.String())
+				continue
+			}
 			if err != nil {
 				return "", err
 			}
