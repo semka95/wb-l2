@@ -29,7 +29,7 @@ package main
 import (
 	"os"
 
-	"sortstrings/sortstrings"
+	"go-sort/sortstrings"
 )
 
 func main() {
