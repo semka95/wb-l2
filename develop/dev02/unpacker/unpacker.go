@@ -1,7 +1,6 @@
 package unpacker
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -10,20 +9,12 @@ import (
 	"unicode"
 )
 
-// CLI runs the go-grab-xkcd command line app and returns its exit status.
+// CLI runs the unpacker command line app and returns its exit status.
 func CLI(args []string) int {
 	var app appEnv
-	stat, _ := os.Stdin.Stat()
-	if (stat.Mode() & os.ModeCharDevice) == 0 {
-		err := app.fromStdin()
-		if err != nil {
-			return 2
-		}
-	} else {
-		err := app.fromArgs(args)
-		if err != nil {
-			return 2
-		}
+	err := app.fromArgs(args)
+	if err != nil {
+		return 2
 	}
 
 	if err := app.run(); err != nil {
@@ -44,20 +35,6 @@ func (app *appEnv) fromArgs(args []string) error {
 	}
 
 	app.input = args[0]
-	return nil
-}
-
-func (app *appEnv) fromStdin() error {
-	var stdin []byte
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		stdin = append(stdin, scanner.Bytes()...)
-	}
-	if err := scanner.Err(); err != nil {
-		return err
-	}
-
-	app.input = string(stdin)
 	return nil
 }
 
