@@ -36,7 +36,10 @@ func TestUnpack(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			got := unpack(tC.input)
+			got, err := unpack(tC.input)
+			if err != nil {
+				t.Errorf("Error: %v", err)
+			}
 			if got != tC.want {
 				t.Errorf("got: %s, want: %s", got, tC.want)
 			}

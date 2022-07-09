@@ -65,14 +65,14 @@ func (app *appEnv) run() error {
 	return nil
 }
 
-func unpack(input string) string {
+func unpack(input string) (string, error) {
 	runes := []rune(input)
 	var b strings.Builder
 
 	for i := 0; i < len(runes); i++ {
 		if unicode.IsNumber(runes[i]) {
 			if i == 0 {
-				return ""
+				return "", nil
 			}
 
 			num := string(runes[i])
@@ -83,15 +83,22 @@ func unpack(input string) string {
 				i++
 			}
 
-			res, _ := strconv.Atoi(num)
+			res, err := strconv.Atoi(num.String())
+			if err != nil {
+				return "", err
+			}
+
 			for j := 0; j < res-1; j++ {
 				b.WriteRune(letter)
 			}
 
 			continue
 		}
-		b.WriteRune(runes[i])
+		_, err := b.WriteRune(runes[i])
+		if err != nil {
+			return "", err
+		}
 	}
 
-	return b.String()
+	return b.String(), nil
 }
