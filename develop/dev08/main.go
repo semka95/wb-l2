@@ -1,5 +1,3 @@
-package main
-
 /*
 === Взаимодействие с ОС ===
 
@@ -13,7 +11,14 @@ package main
 принимать данные из stdin и отправлять в соединение (tcp/udp)
 Программа должна проходить все тесты. Код должен проходить проверки go vet и golint.
 */
+package main
+
+import (
+	"os"
+
+	"go-shell/shell"
+)
 
 func main() {
-
+	os.Exit(shell.CLI())
 }
