@@ -46,3 +46,17 @@ func TestUnpack(t *testing.T) {
 		})
 	}
 }
+
+func FuzzUnpack(f *testing.F) {
+	testcases := []string{"a10df5cvs1", "a4df5cvs1", " ", "abcd", ""}
+	for _, tc := range testcases {
+		f.Add(tc) // Use f.Add to provide a seed corpus
+	}
+
+	f.Fuzz(func(t *testing.T, orig string) {
+		_, err := unpack(orig)
+		if err != nil {
+			t.Errorf("Error: %v", err)
+		}
+	})
+}
