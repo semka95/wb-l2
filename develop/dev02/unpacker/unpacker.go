@@ -70,7 +70,7 @@ func unpack(input string) (string, error) {
 	var b strings.Builder
 
 	for i := 0; i < len(runes); i++ {
-		if unicode.IsNumber(runes[i]) {
+		if unicode.IsDigit(runes[i]) && runes[i] < unicode.MaxASCII {
 			if i == 0 {
 				return "", nil
 			}
@@ -79,7 +79,7 @@ func unpack(input string) (string, error) {
 			num.WriteRune(runes[i])
 			letter := runes[i-1]
 
-			for j := i + 1; j < len(runes)-1 && unicode.IsNumber(runes[j]); j++ {
+			for j := i + 1; j < len(runes)-1 && unicode.IsDigit(runes[j]) && runes[j] < unicode.MaxASCII; j++ {
 				num.WriteRune(runes[j])
 				i++
 			}
