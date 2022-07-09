@@ -1,4 +1,4 @@
-module ntp
+module go-ntp
 
 go 1.18
 

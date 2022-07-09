@@ -13,8 +13,9 @@
 package main
 
 import (
-	"ntp/ntp"
 	"os"
+
+	"go-ntp/ntp"
 )
 
 func main() {
