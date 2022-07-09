@@ -75,11 +75,12 @@ func unpack(input string) (string, error) {
 				return "", nil
 			}
 
-			num := string(runes[i])
+			var num strings.Builder
+			num.WriteRune(runes[i])
 			letter := runes[i-1]
 
 			for j := i + 1; j < len(runes)-1 && unicode.IsNumber(runes[j]); j++ {
-				num += string(runes[j])
+				num.WriteRune(runes[j])
 				i++
 			}
 
