@@ -9,6 +9,7 @@ import (
 	"github.com/beevik/ntp"
 )
 
+// CLI runs the go-ntp command line app and returns its exit status.
 func CLI(args []string) int {
 	var app appEnv
 	err := app.fromArgs(args)
