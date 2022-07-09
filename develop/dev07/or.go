@@ -40,7 +40,6 @@ import (
 )
 
 func main() {
-
 	sig := func(after time.Duration) <-chan interface{} {
 		c := make(chan interface{})
 		go func() {
