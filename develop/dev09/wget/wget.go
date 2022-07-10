@@ -1,138 +1,114 @@
 package wget
 
 import (
-	"bytes"
+	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
-	"strings"
 
-	link "go-wget/parse"
+	"github.com/schollz/progressbar/v3"
 )
 
-// Sitemap represents data needed to build sitemap using BuildSitemap
-type Sitemap struct {
-	rootLink     string
-	visitedLinks map[string]struct{}
-	directory    string
+// appEnv represents parsed command line arguments
+type appEnv struct {
+	link       *url.URL
+	outputFile string
+	depth      int
+	recursive  bool
+	resources  bool
 }
 
-// NewSitemap creates instance of Sitemap
-func NewSitemap(rootLink string, directory string) Sitemap {
-	v := map[string]struct{}{
-		rootLink: {},
+// CLI runs the go-wget command line app and returns its exit status
+func CLI(args []string) int {
+	var app appEnv
+	err := app.fromArgs(args)
+	if err != nil {
+		return 2
 	}
-
-	s := Sitemap{
-		rootLink:     rootLink,
-		visitedLinks: v,
-		directory:    directory,
+	if err = app.run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Runtime error: %v\n", err)
+		return 1
 	}
-
-	return s
+	return 0
 }
 
-// BuildSitemap visits links in queue and parses links in other queue and
-// recursively visits them. If depth is greater than zero it restricts number
-// of recursive calls. All visited links recorded to Sitemap.visitedLinks
-func (s *Sitemap) BuildSitemap(queue []string, depth int) error {
-	if depth == 0 {
-		return nil
+// fromArgs parses command line arguments into appEnv struct
+func (app *appEnv) fromArgs(args []string) error {
+	fl := flag.NewFlagSet("go-wget", flag.ContinueOnError)
+	fl.StringVar(&app.outputFile, "O", "", "Path to output file")
+	fl.IntVar(&app.depth, "l", -1, "Maximum number of links to follow when building downloading the site. By default depth is not set")
+	fl.BoolVar(&app.recursive, "r", false, "Turn on recursive retriving")
+	fl.BoolVar(&app.resources, "p", false, "Download all the files that are necessary to properly display a given HTML page")
+
+	if err := fl.Parse(args); err != nil {
+		return err
 	}
 
-	discoveredLinks := make([]string, 0)
-
-	for _, v := range queue {
-		resp, err := http.Get(v)
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
-
-		mediatype, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
-		if err != nil {
-			fmt.Printf("can't parse link type: %s", err.Error())
-		}
-		ext, err := mime.ExtensionsByType(mediatype)
-		if err != nil || len(ext) == 0 {
-			fmt.Printf("can't parse link type: %s", err.Error())
-		}
-
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-
-		r := bytes.NewReader(body)
-		fileName := path.Join(s.directory, path.Base(resp.Request.URL.Path)+ext[0])
-		file, err := os.Create(fileName)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-
-		size, err := io.Copy(file, r)
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("\nDownloaded a file %s with size %d bytes\n", fileName, size)
-
-		r.Seek(0, 0)
-		l, err := s.parseLinks(r)
-		if err != nil {
-			return err
-		}
-		discoveredLinks = append(discoveredLinks, l...)
+	u, err := url.Parse(fl.Arg(0))
+	if err != nil {
+		return err
 	}
+	app.link = u
+	app.depth++
 
-	if len(discoveredLinks) > 0 {
-		depth--
-		return s.BuildSitemap(discoveredLinks, depth)
+	if app.outputFile == "" {
+		app.outputFile = path.Base(app.link.Path)
 	}
 
 	return nil
 }
 
-// parseLinks reads html data from io.Reader and creates array of links.
-// It only parses links with Sitemap.rootLink domain
-func (s *Sitemap) parseLinks(r io.Reader) ([]string, error) {
-	res, err := link.ParseHTML(r)
-	if err != nil {
-		return nil, err
+func (app *appEnv) run() error {
+	if app.recursive {
+		queue := []string{app.link.String()}
+		if err := os.Mkdir(app.link.Host, os.ModePerm); err != nil {
+			return err
+		}
+		sm := NewSite(app.link.String(), app.link.Host)
+		err := sm.DownloadSite(queue, app.depth)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
-	links := make([]string, 0)
-
-	for _, v := range res {
-		href := v.Href.Host + v.Href.Path
-		visited := true
-
-		switch {
-		case strings.HasPrefix(href, s.rootLink):
-			visited = s.isVisited(href)
-		case strings.HasPrefix(href, "/"):
-			href = s.rootLink + href
-			visited = s.isVisited(href)
-		}
-
-		if !visited {
-			links = append(links, href)
-		}
-	}
-
-	return links, nil
+	return downloadFile(app.link.String(), app.outputFile)
 }
 
-// isVisited checks if url visited
-func (s *Sitemap) isVisited(href string) (visited bool) {
-	if _, visited = s.visitedLinks[href]; !visited {
-		s.visitedLinks[href] = struct{}{}
+func downloadFile(url string, filePath string) error {
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	client := http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			req.URL.Opaque = req.URL.Path
+			return nil
+		},
 	}
 
-	return visited
+	resp, err := client.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	bar := progressbar.DefaultBytes(
+		resp.ContentLength,
+		"downloading",
+	)
+
+	size, err := io.Copy(io.MultiWriter(file, bar), resp.Body)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("\nDownloaded a file %s with size %d bytes\n", filePath, size)
+
+	return nil
 }
