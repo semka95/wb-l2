@@ -2,6 +2,7 @@ package shell
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -31,15 +32,16 @@ func (app *appEnv) run() {
 		if strings.Contains(command, "|") {
 			if err := app.execPipe(command); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
-				continue
+			}
+		} else {
+			app.out = os.Stdout
+			if err := app.execCommand(command); err != nil {
+				fmt.Fprintf(os.Stderr, "%v\n", err)
 			}
 		}
-		app.out = os.Stdout
-		if err := app.execCommand(command); err != nil {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
-		}
+
 		path, _ := filepath.Abs(".")
-		fmt.Printf("%s: ", path)
+		fmt.Printf("%s\n$: ", path)
 		scanner.Scan()
 	}
 }
