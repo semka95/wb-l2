@@ -120,6 +120,8 @@ func (app *appEnv) execCommand(command string) error {
 	case "exit":
 		fmt.Fprint(app.out, "exiting from the shell\n")
 		os.Exit(0)
+	default:
+		return fmt.Errorf("command not found: %s", c[0])
 	}
 	return nil
 }
