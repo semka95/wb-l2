@@ -134,7 +134,7 @@ func (app *appEnv) execPipe(command string) error {
 		return fmt.Errorf("pipe: not enough commands: '%v'", c)
 	}
 
-	var b, out bytes.Buffer
+	var b bytes.Buffer
 	for i := 0; i < len(c); i++ {
 		com := exec.Command(c[i])
 		commArgs := strings.Split(c[i], " ")
@@ -144,8 +144,7 @@ func (app *appEnv) execPipe(command string) error {
 
 		com.Stdin = bytes.NewReader(b.Bytes())
 		b.Reset()
-		out.Reset()
-		com.Stdout = &out
+		com.Stdout = &b
 
 		err := com.Start()
 		if err != nil {
@@ -155,8 +154,6 @@ func (app *appEnv) execPipe(command string) error {
 		if err != nil {
 			return err
 		}
-
-		b.Write(out.Bytes())
 	}
 
 	fmt.Fprint(app.out, b.String())
