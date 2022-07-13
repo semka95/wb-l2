@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// statusWriter is custom http.ResponseWriter that captures status and size of response
 type statusWriter struct {
 	http.ResponseWriter
 	status int
@@ -56,6 +57,5 @@ func Logger(next http.HandlerFunc) http.HandlerFunc {
 		default:
 			zap.L().Info("Success", fields...)
 		}
-
 	}
 }
