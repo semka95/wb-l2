@@ -191,5 +191,7 @@ type eface struct {
 В то время как пустой интерфейс может просто повторно использовать структуру данных `iface` (в конце концов, это надмножество `eface`), среда выполнения предпочитает различать их по двум основным причинам: эффективность использования пространства и ясность кода.
 
 Ссылки:
+
 - https://github.com/teh-cmc/go-internals/blob/master/chapter2_interfaces/README.md
 - https://research.swtch.com/interfaces
+- https://habr.com/ru/post/276981/
