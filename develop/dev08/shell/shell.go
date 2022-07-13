@@ -29,7 +29,7 @@ func (app *appEnv) run() {
 	for {
 		command := scanner.Text()
 		if strings.Contains(command, "|") {
-			if err := execPipe(command); err != nil {
+			if err := app.execPipe(command); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				continue
 			}
@@ -124,19 +124,38 @@ func (app *appEnv) execCommand(command string) error {
 	return nil
 }
 
-func execPipe(command string) error {
-	// c := strings.Split(command, " | ")
-	// if len(c) < 2 {
-	// 	return fmt.Errorf("pipe: not enough commands: '%v'", c)
-	// }
+func (app *appEnv) execPipe(command string) error {
+	c := strings.Split(command, " | ")
+	if len(c) < 2 {
+		return fmt.Errorf("pipe: not enough commands: '%v'", c)
+	}
 
-	// out := new(io.ReadCloser)
-	// for i := 0; i < len(c); i++ {
-	// 	com := exec.Command(c[0])
-	// 	com.Stdin = *out
-	// 	com.StdoutPipe()
-	// 	com.StdinPipe()
-	// }
+	var b, out bytes.Buffer
+	for i := 0; i < len(c); i++ {
+		com := exec.Command(c[i])
+		commArgs := strings.Split(c[i], " ")
+		if len(commArgs) > 1 {
+			com = exec.Command(commArgs[0], commArgs[1:]...)
+		}
+
+		com.Stdin = bytes.NewReader(b.Bytes())
+		b.Reset()
+		out.Reset()
+		com.Stdout = &out
+
+		err := com.Start()
+		if err != nil {
+			return err
+		}
+		err = com.Wait()
+		if err != nil {
+			return err
+		}
+
+		b.Write(out.Bytes())
+	}
+
+	fmt.Fprint(app.out, b.String())
 
 	return nil
 }
