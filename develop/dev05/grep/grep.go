@@ -32,7 +32,7 @@ type appEnv struct {
 	invert       bool
 	isFixed      bool
 	printLineNum bool
-	reader       io.Reader
+	reader       io.ReadCloser
 	input        []string
 	pattern      string
 }
@@ -85,6 +85,7 @@ func (app *appEnv) fromArgs(args []string) error {
 }
 
 func (app *appEnv) run() error {
+	defer app.reader.Close()
 	scanner := bufio.NewScanner(app.reader)
 	for scanner.Scan() {
 		app.input = append(app.input, scanner.Text())
